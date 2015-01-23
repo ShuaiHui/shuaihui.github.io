@@ -9,4 +9,4 @@ category: blog
 
 
 
-[BeiYuu]:    http://beiyuu.com  "BeiYuu"
+[ShiftWang]:    http://shiftwang.github.io/  "ShiftWang"
