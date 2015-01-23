@@ -5,7 +5,7 @@ pygments: true
 paginate: 8
 permalink: /:title
 
-title: ShiftWang.com
+title: 帅灰
 url: http://ShiftWang.github.io
 feed: /atom.xml
 author_info: <a href="http://ShiftWang.github.io/">ShiftWang</a>
