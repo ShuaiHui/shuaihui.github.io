@@ -6,6 +6,6 @@ paginate: 8
 permalink: /:title
 
 title: 帅灰
-url: http://ShiftWang.github.io
+url: http://shuaihui.github.io
 feed: /atom.xml
-author_info: <a href="http://ShiftWang.github.io/">ShiftWang</a>
+author_info: <a href="http://shuaihui.github.io/">shuaihui</a>
