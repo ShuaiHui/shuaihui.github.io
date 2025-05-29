@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交互式交易风险管理指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Visualization & Content Choices:
+        - S1 (Understanding RM): Goal: Inform. Method: Interactive cards for key benefits (HTML/JS). Justification: Quick highlights.
+        - S2 (Spectrum of Risks): Goal: Organize/Inform. Method: Filterable grid of risk cards with Unicode icons (HTML/JS). Justification: Easy navigation and quick info retrieval.
+        - S3 (Core Principles): Goal: Organize/Inform. Method: Accordion/Tabs (HTML/JS). Justification: Structured presentation of dense info.
+        - S4 (Strategies - SL/TP concepts): Goal: Compare/Inform. Method: Bar chart (Chart.js/Canvas) for SL impact. Justification: Visual comparison.
+        - S4 (Strategies - Position Sizing): Goal: Inform/Interact. Method: Donut chart (Chart.js/Canvas) for 1% rule visualization & JS calculator. Justification: Visual aid and practical tool.
+        - S4 (Strategies - RRR): Goal: Compare. Method: Bar chart (Chart.js/Canvas) for RRR impact. Justification: Demonstrates RRR value.
+        - S4 (Strategies - Leverage): Goal: Inform/Interact. Method: JS-driven visual/text update based on a conceptual slider. Justification: Illustrates leverage impact.
+        - S5 (Personalized Plan): Goal: Interact/Organize. Method: HTML/JS checklist. Justification: Actionable tool for users.
+        - S6 (Psychology): Goal: Inform/Interact. Method: Simple JS quiz/self-assessment, clickable cards for biases. Justification: Engaging way to present psychological aspects.
+        - S8 (Pitfalls): Goal: Inform/Interact. Method: Interactive "Mistake Cards" (HTML/JS flip/reveal). Justification: Engaging learning.
+        - Diagrams (e.g., simple process flow for personal plan elements): HTML/CSS with Tailwind. Justification: Visualizing steps without SVG/Mermaid.
+        - All choices adhere to NO SVG/Mermaid, using Chart.js for charts on Canvas, and HTML/CSS/JS for other visuals and interactions. The designed structure supports better usability and exploration of the report's content.
+    -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #F8F7F2; /* Warm Off-White */
+            color: #4A4A4A; /* Dark Gray */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px; /* Slightly smaller for better fit in cards */
+            margin-left: auto;
+            margin-right: auto;
+            height: 280px; /* Adjusted base height */
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 320px; /* Adjusted md height */
+            }
+        }
+        .nav-link {
+            transition: color 0.3s ease;
+            color: #FEFEFE;
+        }
+        .nav-link:hover, .nav-link-active {
+            color: #E0D8C0; /* Lighter beige for hover/active */
+        }
+        .section-title {
+            color: #6C7A89; /* Cool Slate Blue */
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.75rem; /* 12px */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .button-accent {
+            background-color: #6C7A89; /* Cool Slate Blue */
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        .button-accent:hover {
+            background-color: #505A65; /* Darker Slate Blue */
+        }
+        .tab-button {
+            background-color: #E0D8C0; /* Soft Beige */
+            color: #4A4A4A;
+            border: 1px solid #D1C5B4;
+        }
+        .tab-button.active {
+            background-color: #6C7A89;
+            color: white;
+            border-color: #6C7A89;
+        }
+        .accordion-header {
+            background-color: #FFFFFF;
+            border-bottom: 1px solid #E0D8C0; /* Soft Beige divider */
+        }
+        .accordion-header:hover {
+            background-color: #FAF8F2;
+        }
+        .accent-text { color: #6C7A89; }
+        .subtle-bg { background-color: #FAF8F2; } /* Very light beige for section alternate bg */
+
+        /* Styles for interactive flip cards */
+        .flip-card { perspective: 1000px; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; }
+        .flip-card:hover .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1rem; border-radius: 0.75rem; }
+        .flip-card-front { background-color: #FFFFFF; border: 1px solid #D1C5B4; }
+        .flip-card-back { background-color: #6C7A89; color: white; transform: rotateY(180deg); }
+
+        /* Custom scrollbar for better aesthetics (optional) */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #F8F7F2; }
+        ::-webkit-scrollbar-thumb { background: #D1C5B4; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #A27B5C; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="bg-[#4A4A4A] shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-3">
+            <div class="flex items-center justify-between">
+                <div class="text-xl font-semibold text-white">交易风险管理</div>
+                <div class="hidden md:flex space-x-4">
+                    <a href="#understanding-rm" class="nav-link">认识风险</a>
+                    <a href="#spectrum-of-risks" class="nav-link">风险概览</a>
+                    <a href="#core-principles" class="nav-link">核心原则</a>
+                    <a href="#practical-strategies" class="nav-link">实战策略</a>
+                    <a href="#personalized-plan" class="nav-link">定制计划</a>
+                    <a href="#trading-psychology" class="nav-link">交易心理</a>
+                    <a href="#common-pitfalls" class="nav-link">常见误区</a>
+                </div>
+                <button id="mobile-menu-button" class="md:hidden text-white focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden mt-2 space-y-2">
+                <a href="#understanding-rm" class="block nav-link px-2 py-1 rounded">认识风险</a>
+                <a href="#spectrum-of-risks" class="block nav-link px-2 py-1 rounded">风险概览</a>
+                <a href="#core-principles" class="block nav-link px-2 py-1 rounded">核心原则</a>
+                <a href="#practical-strategies" class="block nav-link px-2 py-1 rounded">实战策略</a>
+                <a href="#personalized-plan" class="block nav-link px-2 py-1 rounded">定制计划</a>
+                <a href="#trading-psychology" class="block nav-link px-2 py-1 rounded">交易心理</a>
+                <a href="#common-pitfalls" class="block nav-link px-2 py-1 rounded">常见误区</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <section id="understanding-rm" class="mb-16 pt-12">
+            <h2 class="text-3xl font-bold section-title mb-3 text-center">认识风险管理</h2>
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">风险管理是交易成功的基石，它帮助交易者在变幻莫测的市场中保护资本、实现长期盈利，并将交易从赌博转变为一项专业的、可持续的事业。</p>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="card p-6 text-center">
+                    <div class="text-4xl accent-text mb-3">🛡️</div>
+                    <h3 class="text-xl font-semibold mb-2">资本保全</h3>
+                    <p class="text-sm text-gray-600">风险管理的首要目标是保护您的交易资本，避免灾难性损失，确保您能持续参与市场。</p>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="text-4xl accent-text mb-3">📈</div>
+                    <h3 class="text-xl font-semibold mb-2">长期成功</h3>
+                    <p class="text-sm text-gray-600">有效的风险管理有助于识别和管理潜在风险，是实现长期、稳定盈利的关键。</p>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="text-4xl accent-text mb-3">🧭</div>
+                    <h3 class="text-xl font-semibold mb-2">战略决策</h3>
+                    <p class="text-sm text-gray-600">理解并量化风险，使您能更有信心地承担经过计算的风险，抓住有利的交易机会。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="spectrum-of-risks" class="mb-16 pt-12 subtle-bg py-12 rounded-lg">
+            <h2 class="text-3xl font-bold section-title mb-3 text-center">风险面面观</h2>
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">交易世界充满各种风险。全面了解这些风险，是制定有效应对策略的第一步。点击下方卡片查看详情。</p>
+            <div id="risk-cards-container" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+        </section>
+
+        <section id="core-principles" class="mb-16 pt-12">
+            <h2 class="text-3xl font-bold section-title mb-3 text-center">风险管理核心原则</h2>
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">有效的风险管理建立在一系列核心原则之上，它们共同构成了稳健交易行为的指导框架。</p>
+            <div id="principles-accordion" class="space-y-2">
+                </div>
+        </section>
+
+        <section id="practical-strategies" class="mb-16 pt-12 subtle-bg py-12 rounded-lg">
+            <h2 class="text-3xl font-bold section-title mb-3 text-center">实战策略与工具</h2>
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">掌握这些具体策略和工具，将帮助您在实践中有效控制风险，为交易保驾护航。</p>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-center accent-text">止损与止盈概念</h3>
+                    <p class="text-sm text-gray-600 mb-4">止损订单用于限制单笔交易的最大亏损，止盈订单则用于在达到预定目标时锁定利润。两者都应在交易前设定。</p>
+                    <div class="chart-container">
+                        <canvas id="stopLossConceptChart"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 text-center">图表说明：不同止损策略对假设资本的影响。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-center accent-text">头寸规模 (1%规则)</h3>
+                    <p class="text-sm text-gray-600 mb-2">“1%规则”建议单笔交易风险不超过总资本的1%。这有助于在连续亏损时保护账户。</p>
+                    <div class="chart-container mb-4">
+                        <canvas id="positionSizingDonutChart"></canvas>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="accountCapital" class="block text-sm font-medium text-gray-700">账户总资本 (元):</label>
+                            <input type="number" id="accountCapital" value="100000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="riskPercentage" class="block text-sm font-medium text-gray-700">愿意承担的风险百分比 (%):</label>
+                            <input type="number" id="riskPercentage" value="1" step="0.1" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="stopLossDistance" class="block text-sm font-medium text-gray-700">止损距离 (例如: 股票为元, 外汇为点):</label>
+                            <input type="number" id="stopLossDistance" value="10" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <button id="calculatePositionSize" class="w-full button-accent font-semibold py-2 px-4 rounded-md">计算建议风险金额</button>
+                        <p id="positionSizeResult" class="mt-2 text-sm text-center text-gray-700"></p>
+                    </div>
+                     <p class="text-xs text-gray-500 mt-2 text-center">注：上方计算器仅为概念演示，实际头寸单位需结合合约规格。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-center accent-text">风险回报比 (RRR)</h3>
+                    <p class="text-sm text-gray-600 mb-4">评估潜在利润与潜在亏损的比率。有利的RRR（通常建议至少1:2）有助于长期盈利。</p>
+                    <div class="chart-container">
+                        <canvas id="rrrConceptChart"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 text-center">图表说明：不同风险回报比对长期盈利能力的潜在影响。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-center accent-text">杠杆管理</h3>
+                    <p class="text-sm text-gray-600 mb-2">杠杆能放大收益，也能放大亏损。审慎使用是关键。</p>
+                    <label for="leverageSlider" class="block text-sm font-medium text-gray-700">模拟杠杆倍数 (1x - 50x): <span id="leverageValue" class="font-bold accent-text">1x</span></label>
+                    <input type="range" id="leverageSlider" min="1" max="50" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#6C7A89] mt-1 mb-3">
+                    <p class="text-sm text-gray-600">假设初始波动导致100元盈利/亏损：</p>
+                    <p class="text-sm">无杠杆: <span class="font-semibold">盈利/亏损 100元</span></p>
+                    <p class="text-sm">使用 <span id="leverageDisplay" class="font-bold accent-text">1x</span> 杠杆: <span id="leveragedOutcome" class="font-semibold">盈利/亏损 100元</span></p>
+                    <p class="text-xs text-gray-500 mt-3">重要提示：这仅为简化演示。实际杠杆影响复杂，涉及保证金、强制平仓等。务必充分学习并从小额开始。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="personalized-plan" class="mb-16 pt-12">
+            <h2 class="text-3xl font-bold section-title mb-3 text-center">定制您的风险计划</h2>
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">没有“一刀切”的风险管理方案。结合您的交易资本、目标、风格和风险承受能力，思考并记录您的个性化风险规则。</p>
+            <div class="card p-6">
+                <h3 class="text-xl font-semibold mb-4 accent-text">风险计划要素清单 (思考与记录):</h3>
+                <ul id="planElementsList" class="space-y-3">
+                    </ul>
+            </div>
+            <div class="mt-6 p-4 subtle-bg rounded-lg text-sm text-gray-700">
+                <h4 class="font-semibold text-gray-800 mb-2">简化风险管理流程：</h4>
+                <div class="flex flex-wrap justify-center items-center gap-2 text-center">
+                    <span class="p-2 bg-white rounded shadow-sm">1. 规划与准备</span> <span class="text-accent-text font-bold">&rarr;</span>
+                    <span class="p-2 bg-white rounded shadow-sm">2. 识别风险</span> <span class="text-accent-text font-bold">&rarr;</span>
+                    <span class="p-2 bg-white rounded shadow-sm">3. 评估风险</span> <span class="text-accent-text font-bold">&rarr;</span>
+                    <span class="p-2 bg-white rounded shadow-sm">4. 设定参数</span> <span class="text-accent-text font-bold">&rarr;</span>
+                    <span class="p-2 bg-white rounded shadow-sm">5. 执行与监控</span> <span class="text-accent-text font-bold">&rarr;</span>
+                    <span class="p-2 bg-white rounded shadow-sm">6. 复盘调整</span>
+                </div>
+                 <p class="mt-3 text-xs text-center">这是一个持续迭代的过程，帮助您不断优化风险管理策略。</p>
+            </div>
+        </section>
+
+        <section id="trading-psychology" class="mb-16 pt-12 subtle-bg py-12 rounded-lg">
+            <h2 class="text-3xl font-bold section-title mb-3 text-center">交易心理与情绪管理</h2>
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">情绪是影响交易决策和风险管理执行的关键。理解并控制恐惧、贪婪等常见情绪和认知偏差，是维持交易纪律的基石。</p>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-3 accent-text">常见情绪挑战</h3>
+                    <div id="emotion-cards-container">
+                        </div>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-3 accent-text">情绪管理技巧</h3>
+                    <ul id="discipline-techniques-list" class="list-disc list-inside space-y-2 text-sm text-gray-600">
+                        </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="common-pitfalls" class="mb-16 pt-12">
+            <h2 class="text-3xl font-bold section-title mb-3 text-center">常见误区与规避</h2>
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">识别并避免这些常见的风险管理错误，是提升交易表现、走向稳定盈利的关键。</p>
+            <div id="pitfalls-container" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+        </section>
+
+        <section id="continuous-learning" class="pt-12 pb-16 text-center subtle-bg py-12 rounded-lg">
+             <h2 class="text-3xl font-bold section-title mb-3">持续学习与精进</h2>
+            <p class="text-lg text-gray-700 mb-6 max-w-2xl mx-auto">风险管理并非一劳永逸，而是一个持续学习、实践和适应的旅程。将风险意识内化为交易习惯，方能在市场中行稳致远。</p>
+            <a href="#understanding-rm" class="button-accent font-semibold py-3 px-6 rounded-lg text-lg">重温核心概念</a>
+        </section>
+
+    </div>
+
+    <footer class="bg-[#4A4A4A] text-gray-300 py-8 text-center text-sm">
+        <p>&copy; <span id="currentYear"></span> 交互式交易风险管理指南。内容仅供学习参考。</p>
+    </footer>
+
+    <script>
+        // Smooth scroll for nav links
+        document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    const offset = document.querySelector('nav').offsetHeight; // Adjust for sticky nav
+                    const bodyRect = document.body.getBoundingClientRect().top;
+                    const elementRect = targetElement.getBoundingClientRect().top;
+                    const elementPosition = elementRect - bodyRect;
+                    const offsetPosition = elementPosition - offset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+                // Close mobile menu if open
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (!mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.add('hidden');
+                }
+            });
+        });
+
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // --- Data for dynamic content ---
+        const risksData = [
+            { name: "市场风险", icon: "📉", description: "源于整体市场波动，如经济衰退、政策变动等系统性因素，难以通过分散投资完全规避。" },
+            { name: "流动性风险", icon: "💧", description: "指资产难以按期望价格快速买卖的风险，常见于交易量低或极端行情下的市场。" },
+            { name: "杠杆风险", icon: "⚖️", description: "杠杆能放大潜在收益，但也同等放大潜在亏损，是把双刃剑，需极度审慎使用。" },
+            { name: "特定风险", icon: "🎯", description: "与特定证券的表现直接相关（例如，某公司宣布破产），可通过投资组合多元化来减轻。" },
+            { name: "利率风险", icon: "📈", description: "主要影响固定收益证券，但也可能对股票产生影响。" },
+            { name: "货币风险", icon: "🌍", description: "源于一种货币相对于另一种货币价格的变动，与国际投资或外汇交易密切相关。" },
+            { name: "操作风险", icon: "⚙️", description: "对于个人交易者，可能指交易平台故障、网络问题或交易执行错误。" },
+            { name: "监管风险", icon: "📜", description: "法律法规变化对特定资产或市场产生影响的风险，例如加密货币市场。" }
+        ];
+
+        const principlesData = [
+            { title: "审慎性原则", content: "基于风险为本的理念，充分重视风险苗头和潜在隐患，有效识别影响风险管理的不利因素，配置充足资源，及时采取措施，提升前瞻性。" },
+            { title: "全面性原则", content: "覆盖所有交易环节和相关风险类型，确保风险识别和管理的无重大遗漏。考虑从市场选择到执行再到心理因素的所有潜在风险。" },
+            { title: "匹配性原则", content: "风险管理体系和资源应与交易者的资金规模、策略复杂性和风险状况相适应，并根据情况变化及时调整。" },
+            { title: "有效性原则", content: "以风险偏好为导向，有效识别、评估、计量、控制、缓释、监测、报告所面临的交易风险，将风险控制在可承受范围之内。定期审视和调整策略。" },
+            { title: "资本保全", content: "风险管理的核心思想是通过将损失限制在可接受的范围内来保护资本。交易资本是首要工具，保护它是第一要务。" },
+            { title: "一致性", content: "在风险规则的应用上，一致性至关重要。例如严格遵守“1%规则”，持续应用的次优计划优于不持续应用的最优计划。" },
+            { title: "纪律性", content: "恪守预定规则是管理风险的一种方式。耐心和纪律能确保交易者坚持策略，不偏离预设的风险承受水平。" }
+        ];
+
+        const planElementsData = [
+            "每笔交易最大风险 (例如账户资本的1-2%)",
+            "最大回撤限制 (每日/每周/每月)",
+            "具体的止损策略 (基于技术分析、波动率等)",
+            "头寸规模计算规则",
+            "最小风险回报比标准 (例如1:2)",
+            "杠杆使用规则 (如适用)",
+            "定期审阅和调整计划的机制"
+        ];
+
+        const emotionData = [
+            { emotion: "恐惧 (Fear)", impact: "犹豫错失良机、过早平盈利单、死扛亏损单。", icon: "😨" },
+            { emotion: "贪婪 (Greed)", impact: "过度交易、承担过高风险、亏损单上“加倍下注”。", icon: "🤑" },
+            { emotion: "希望/否认", impact: "持续持有亏损头寸，拒绝承认亏损现实。", icon: "🤞" },
+            { emotion: "过度自信", impact: "一系列成功后，承担超出平常水平的风险。", icon: "😎" },
+            { emotion: "损失厌恶", impact: "亏损痛苦远大于等量收益喜悦，影响决策。", icon: "💔" },
+            { emotion: "确认偏误", impact: "选择性寻找证实自己决策的信息，忽略矛盾数据。", icon: "👍" }
+        ];
+
+        const disciplineTechniques = [
+            "严格遵守交易计划",
+            "减小交易规模以减轻情绪压力",
+            "在重大盈亏或情绪波动后适时休息",
+            "撰写交易日志，记录决策与情绪，用于反思",
+            "练习正念与自我觉察，识别情绪苗头",
+            "关注执行过程，而非单笔交易的盈亏结果",
+            "接受亏损是交易的必然组成部分"
+        ];
+
+        const pitfallsData = [
+            { mistake: "过度使用杠杆", solution: "从低杠杆开始，理解真实风险，风险敞口控制在总资本的1-3%。", details: "高杠杆显著增加精神负担和亏损风险。" },
+            { mistake: "不设/不尊止损", solution: "接受亏损是常态，入场前必设止损并严格执行。", details: "害怕亏损或侥幸心理导致大损失。" },
+            { mistake: "情绪化交易", solution: "制定并坚守交易计划，情绪波动时暂停交易。", details: "凭感觉而非计划交易，难以持久。" },
+            { mistake: "风险回报比失衡", solution: "追求“损小利大”，选择RRR至少1:2的交易机会。", details: "冒大风险追小利润，长期难盈利。" },
+            { mistake: "无明确交易策略", solution: "学习并建立个人交易系统，包括风险规则，并一致执行。", details: "盲目交易或不遵守规则是失败主因。" },
+            { mistake: "使用非风险资本", solution: "只使用可承受损失的闲置资金进行交易。", details: "生活必需资金交易压力巨大，易致非理性决策。" },
+            { mistake: "过度/报复性交易", solution: "亏损后冷静分析，而非立即增加交易频率挽回损失。", details: "通常在无有效信号时进行，风险更大。" },
+            { mistake: "忽视市场流动性", solution: "选择流动性较好的品种和时段，评估资产变现能力。", details: "低流动性面临点差扩大、滑点、执行困难。" },
+            { mistake: "盲目跟单/依赖他人", solution: "培养独立分析能力，外部信息仅作参考，自行评估风险。", details: "缺乏自主决策，易受误导。" }
+        ];
+
+        // --- Inject dynamic content ---
+        const riskCardsContainer = document.getElementById('risk-cards-container');
+        risksData.forEach(risk => {
+            const card = document.createElement('div');
+            card.className = 'card p-5 cursor-pointer';
+            card.innerHTML = `
+                <div class="flex items-center mb-3">
+                    <span class="text-3xl mr-3">${risk.icon}</span>
+                    <h4 class="text-lg font-semibold accent-text">${risk.name}</h4>
+                </div>
+                <p class="text-sm text-gray-600 hidden">${risk.description}</p>
+            `;
+            card.addEventListener('click', () => {
+                card.querySelector('p').classList.toggle('hidden');
+                card.classList.toggle('h-auto');
+            });
+            riskCardsContainer.appendChild(card);
+        });
+
+        const principlesAccordion = document.getElementById('principles-accordion');
+        principlesData.forEach((principle, index) => {
+            const item = document.createElement('div');
+            item.className = 'card';
+            item.innerHTML = `
+                <button class="accordion-header w-full text-left p-4 focus:outline-none flex justify-between items-center">
+                    <span class="text-md font-medium">${principle.title}</span>
+                    <svg class="w-5 h-5 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div class="accordion-content p-4 text-sm text-gray-600 hidden">
+                    ${principle.content}
+                </div>
+            `;
+            const button = item.querySelector('.accordion-header');
+            const content = item.querySelector('.accordion-content');
+            const icon = button.querySelector('svg');
+            button.addEventListener('click', () => {
+                content.classList.toggle('hidden');
+                icon.classList.toggle('rotate-180');
+            });
+            principlesAccordion.appendChild(item);
+        });
+
+        const planList = document.getElementById('planElementsList');
+        planElementsData.forEach(itemText => {
+            const listItem = document.createElement('li');
+            listItem.className = 'flex items-center';
+            listItem.innerHTML = `
+                <input id="plan-${itemText.replace(/\s+/g, '-')}" type="checkbox" class="h-4 w-4 text-[#6C7A89] border-gray-300 rounded focus:ring-[#6C7A89] mr-3">
+                <label for="plan-${itemText.replace(/\s+/g, '-')}" class="text-sm text-gray-700">${itemText}</label>
+            `;
+            planList.appendChild(listItem);
+        });
+
+        const emotionCardsContainer = document.getElementById('emotion-cards-container');
+        emotionData.forEach(e => {
+            const card = document.createElement('div');
+            card.className = 'p-3 mb-2 bg-gray-50 rounded-md border border-gray-200';
+            card.innerHTML = `<h5 class="font-semibold text-gray-700">${e.icon} ${e.emotion}</h5><p class="text-xs text-gray-500">${e.impact}</p>`;
+            emotionCardsContainer.appendChild(card);
+        });
+
+        const disciplineList = document.getElementById('discipline-techniques-list');
+        disciplineTechniques.forEach(tech => {
+            const item = document.createElement('li');
+            item.textContent = tech;
+            disciplineList.appendChild(item);
+        });
+
+        const pitfallsContainer = document.getElementById('pitfalls-container');
+        pitfallsData.forEach(pitfall => {
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'flip-card h-48'; // Set a fixed height for flip cards
+            cardContainer.innerHTML = `
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h4 class="text-md font-semibold mb-1 accent-text">${pitfall.mistake}</h4>
+                        <p class="text-xs text-gray-500">${pitfall.details}</p>
+                        <p class="text-xs mt-2 text-gray-400">(悬停查看建议)</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h5 class="text-md font-semibold mb-1">规避方法:</h5>
+                        <p class="text-sm">${pitfall.solution}</p>
+                    </div>
+                </div>
+            `;
+            pitfallsContainer.appendChild(cardContainer);
+        });
+
+
+        // --- Chart.js Configurations ---
+        Chart.defaults.font.family = "'Noto Sans SC', sans-serif";
+        Chart.defaults.color = '#4A4A4A';
+
+        function wrapLabel(str, maxWidthChars = 8) { // Adjusted for Chinese characters, approx 8-10 chars per line
+            if (typeof str !== 'string') str = String(str);
+            if (str.length <= maxWidthChars) return str;
+            const lines = [];
+            let currentLine = "";
+            for (let i = 0; i < str.length; i++) {
+                currentLine += str[i];
+                if (currentLine.length >= maxWidthChars) {
+                    lines.push(currentLine);
+                    currentLine = "";
+                }
+            }
+            if (currentLine) lines.push(currentLine);
+            return lines;
+        }
+
+        const commonTooltipCallback = {
+            title: function(tooltipItems) {
+                const item = tooltipItems[0];
+                let label = item.chart.data.labels[item.dataIndex];
+                return Array.isArray(label) ? label.join('') : label; // Join without space for Chinese
+            }
+        };
+        const commonChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: commonTooltipCallback,
+                    backgroundColor: 'rgba(74, 74, 74, 0.9)', // Dark Gray tooltip
+                    titleFont: { weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    padding: 10,
+                    cornerRadius: 4,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#E0D8C0' }, ticks: { color: '#6C7A89' } },
+                x: { grid: { display: false }, ticks: { color: '#6C7A89', autoSkip: false, maxRotation: 0, minRotation: 0 } }
+            }
+        };
+
+        // Stop Loss Concept Chart
+        new Chart(document.getElementById('stopLossConceptChart'), {
+            type: 'bar',
+            data: {
+                labels: [wrapLabel('无止损'), wrapLabel('百分比止损'), wrapLabel('波动率止损')],
+                datasets: [{
+                    label: '假设资本剩余',
+                    data: [60, 85, 92], // Example data
+                    backgroundColor: ['#D1C5B4', '#A27B5C', '#6C7A89'],
+                }]
+            },
+            options: commonChartOptions
+        });
+
+        // Position Sizing Donut Chart
+        new Chart(document.getElementById('positionSizingDonutChart'), {
+            type: 'doughnut',
+            data: {
+                labels: [wrapLabel('风险资金(1%)'), wrapLabel('剩余资金(99%)')],
+                datasets: [{
+                    data: [1, 99],
+                    backgroundColor: ['#6C7A89', '#E0D8C0'],
+                    borderColor: '#F8F7F2',
+                    borderWidth: 2,
+                    hoverOffset: 4
+                }]
+            },
+            options: { ...commonChartOptions, plugins: { ...commonChartOptions.plugins, legend: { display: true, position: 'bottom', labels: { color: '#4A4A4A'} } } }
+        });
+
+        // RRR Concept Chart
+        new Chart(document.getElementById('rrrConceptChart'), {
+            type: 'bar',
+            data: {
+                labels: [wrapLabel('RRR 1:1'), wrapLabel('RRR 1:2'), wrapLabel('RRR 1:3')],
+                datasets: [{
+                    label: '10笔交易后净利润 (假设5赢5输, 每次风险100元)',
+                    data: [0, 500, 1000], // (5*100 - 5*100), (5*200 - 5*100), (5*300 - 5*100)
+                    backgroundColor: ['#D1C5B4', '#A27B5C', '#6C7A89'],
+                }]
+            },
+            options: commonChartOptions
+        });
+
+        // Position Sizing Calculator Logic
+        document.getElementById('calculatePositionSize').addEventListener('click', () => {
+            const capital = parseFloat(document.getElementById('accountCapital').value);
+            const riskPercent = parseFloat(document.getElementById('riskPercentage').value) / 100;
+            const stopDistance = parseFloat(document.getElementById('stopLossDistance').value);
+            const resultElement = document.getElementById('positionSizeResult');
+
+            if (isNaN(capital) || isNaN(riskPercent) || isNaN(stopDistance) || capital <= 0 || riskPercent <= 0 || stopDistance <= 0) {
+                resultElement.textContent = '请输入有效的数值。';
+                resultElement.style.color = 'red';
+                return;
+            }
+            const maxRiskAmount = capital * riskPercent;
+            resultElement.textContent = `本次交易最大可承受风险金额: ${maxRiskAmount.toFixed(2)} 元。`;
+            resultElement.style.color = '#4A4A4A';
+        });
+
+        // Leverage Slider Logic
+        const leverageSlider = document.getElementById('leverageSlider');
+        const leverageValueDisplay = document.getElementById('leverageValue');
+        const leverageDisplay = document.getElementById('leverageDisplay');
+        const leveragedOutcome = document.getElementById('leveragedOutcome');
+
+        leverageSlider.addEventListener('input', (event) => {
+            const leverage = parseInt(event.target.value);
+            leverageValueDisplay.textContent = `${leverage}x`;
+            leverageDisplay.textContent = `${leverage}x`;
+            const baseOutcome = 100;
+            const outcomeWithLeverage = baseOutcome * leverage;
+            leveragedOutcome.textContent = `盈利/亏损 ${outcomeWithLeverage}元`;
+        });
+
+    </script>
+</body>
+</html>
